@@ -2,13 +2,12 @@ import { randomUUID } from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { pool } from '../infrastructure/database.js';
 import { badRequest, notFound } from '../domain/errors.js';
-import { shiftFor } from '../domain/metrics.js';
 import { hashToken } from '../infrastructure/auth.js';
 
-export type Submission = { npsScore: number; answers: { questionId: string; score: number; questionText: string }[]; complaint?: { comment?: string | null | undefined; contact?: string | undefined; consent: boolean } | undefined };
+export type Submission = { attendedAt: string; npsScore: number; answers: { questionId: string; score: number; questionText: string }[]; complaint?: { comment?: string | null | undefined; contact?: string | undefined; consent: boolean } | undefined };
 export async function getPublicSurvey(slug: string) {
   const result = await pool.query(`SELECT sv.id AS survey_id, sv.title, sv.tablet_reset_seconds, s.id AS sector_id, s.name AS sector_name,
-      COALESCE(json_agg(json_build_object('id', q.id, 'text', q.text, 'kind', q.kind, 'required', q.required) ORDER BY q.position) FILTER (WHERE q.id IS NOT NULL), '[]') AS questions
+      COALESCE(json_agg(json_build_object('id', q.id, 'text', q.text, 'kind', q.kind, 'required', q.required, 'sectorId', q.sector_id) ORDER BY q.position) FILTER (WHERE q.id IS NOT NULL), '[]') AS questions
     FROM surveys sv JOIN sectors s ON s.id = sv.sector_id
     LEFT JOIN questions q ON (q.sector_id = s.id OR q.sector_id IS NULL) AND q.active = true
     WHERE s.slug = $1 AND s.active = true AND sv.status = 'published'
@@ -40,10 +39,11 @@ export async function submitResponse(slug: string, idempotencyKey: string, input
       const questions = await client.query("SELECT id FROM questions WHERE id = ANY($1::uuid[]) AND active = true AND kind = 'rating' AND (sector_id = $2 OR sector_id IS NULL)", [questionIds, sectorId]);
       if (questions.rowCount !== questionIds.length) throw badRequest('Invalid question for this sector');
     }
+    const lowRating = input.answers.some((answer) => answer.score < 3);
+    if (input.complaint && !lowRating) throw badRequest('Complaints are only accepted for ratings below 3');
     if (input.complaint && input.complaint.contact && !input.complaint.consent) throw badRequest('Contact consent is required');
     const responseId = randomUUID();
-    const shift = shiftFor(new Date());
-    await client.query('INSERT INTO responses (id, survey_id, nps, shift) VALUES ($1, $2, $3, $4)', [responseId, surveyId, input.npsScore, shift]);
+    await client.query('INSERT INTO responses (id, survey_id, nps, shift, attended_at) VALUES ($1, $2, $3, NULL, $4)', [responseId, surveyId, input.npsScore, input.attendedAt]);
     for (const answer of input.answers) await client.query('INSERT INTO answers (response_id, question_id, value, question_text) SELECT $1, id, $2, $4 FROM questions WHERE id = $3', [responseId, answer.score, answer.questionId, answer.questionText]);
     if (input.complaint) {
       const complaint = await client.query('INSERT INTO complaints (response_id, comment, contact, contact_consent) VALUES ($1, $2, $3, $4) RETURNING id', [responseId, input.complaint.comment, input.complaint.contact ?? null, input.complaint.consent]);

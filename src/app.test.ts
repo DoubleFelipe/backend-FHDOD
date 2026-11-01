@@ -29,5 +29,9 @@ describe('HTTP API', () => {
     const specification = specResponse.json();
     expect(specification.openapi).toBe('3.1.0');
     expect(specification.paths).toHaveProperty('/api/v1/auth/login');
+    expect(specification.paths['/api/v1/users'].post.requestBody.required).toBe(true);
+    const submission = specification.paths['/api/v1/surveys/public/{slug}/responses'].post;
+    expect(submission.parameters).toContainEqual(expect.objectContaining({ name: 'Idempotency-Key', in: 'header', required: true }));
+    expect(submission.requestBody.content['application/json'].schema.required).toContain('attendedAt');
   });
 });
