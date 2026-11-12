@@ -3,8 +3,9 @@ import type { PoolClient } from 'pg';
 import { pool } from '../infrastructure/database.js';
 import { badRequest, notFound } from '../domain/errors.js';
 import { hashToken } from '../infrastructure/auth.js';
+import { shiftFor } from '../domain/metrics.js';
 
-export type Submission = { attendedAt: string; npsScore: number; answers: { questionId: string; score: number; questionText: string }[]; complaint?: { comment?: string | null | undefined; contact?: string | undefined; consent: boolean } | undefined };
+export type Submission = { attendedAt?: string | undefined; npsScore: number; answers: { questionId: string; score: number; questionText: string }[]; complaint?: { comment?: string | null | undefined; contact?: string | undefined; consent: boolean } | undefined };
 export async function getPublicSurvey(slug: string) {
   const result = await pool.query(`SELECT sv.id AS survey_id, sv.title, sv.tablet_reset_seconds, s.id AS sector_id, s.name AS sector_name,
       COALESCE(json_agg(json_build_object('id', q.id, 'text', q.text, 'kind', q.kind, 'required', q.required, 'sectorId', q.sector_id) ORDER BY q.position) FILTER (WHERE q.id IS NOT NULL), '[]') AS questions
@@ -43,7 +44,9 @@ export async function submitResponse(slug: string, idempotencyKey: string, input
     if (input.complaint && !lowRating) throw badRequest('Complaints are only accepted for ratings below 3');
     if (input.complaint && input.complaint.contact && !input.complaint.consent) throw badRequest('Contact consent is required');
     const responseId = randomUUID();
-    await client.query('INSERT INTO responses (id, survey_id, nps, shift, attended_at) VALUES ($1, $2, $3, NULL, $4)', [responseId, surveyId, input.npsScore, input.attendedAt]);
+    const attendedAt = input.attendedAt ? new Date(input.attendedAt) : null;
+    const shift = shiftFor(attendedAt ?? new Date());
+    await client.query('INSERT INTO responses (id, survey_id, nps, shift, attended_at) VALUES ($1, $2, $3, $4, $5)', [responseId, surveyId, input.npsScore, shift, attendedAt]);
     for (const answer of input.answers) await client.query('INSERT INTO answers (response_id, question_id, value, question_text) SELECT $1, id, $2, $4 FROM questions WHERE id = $3', [responseId, answer.score, answer.questionId, answer.questionText]);
     if (input.complaint) {
       const complaint = await client.query('INSERT INTO complaints (response_id, comment, contact, contact_consent) VALUES ($1, $2, $3, $4) RETURNING id', [responseId, input.complaint.comment, input.complaint.contact ?? null, input.complaint.consent]);

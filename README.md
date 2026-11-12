@@ -1,6 +1,8 @@
 # API FHDOD — Pesquisa de Satisfação
 
-Backend REST independente para a aplicação FHDOD. Tecnologias: Node.js 22+, TypeScript estrito, Fastify, PostgreSQL (`pg`), Zod e OpenAPI 3.1.
+Backend REST integrado ao frontend FHDOD. Tecnologias: Node.js 22+, TypeScript estrito, Fastify, PostgreSQL (`pg`), Zod e OpenAPI 3.1.
+
+Para publicar a API com PostgreSQL Aiven no Render, consulte o passo a passo em `FHDOD/docs/DEPLOY-AIVEN-RENDER.md` e use o `render.yaml` deste repositório.
 
 ## Passo a passo para executar localmente
 
@@ -45,4 +47,4 @@ O esquema legado indicado (`supabase/migrations/202610020001_initial_schema.sql`
 - `npm test` — testes unitários e HTTP sem banco externo
 - `npm run db:migrate` — migrations (apenas com conexão de migration configurada)
 
-Veja [docs/MIGRATION.md](docs/MIGRATION.md) antes de migrar dados ou realizar cutover. Esta implementação não se conecta à Aiven por padrão, não migra identidades e não importa dados. Em produção, configure `DATABASE_CA_CERT_PATH` com a CA da Aiven e use segredos de um gerenciador seguro; não use `sslmode=disable`.
+Veja [docs/MIGRATION.md](docs/MIGRATION.md) antes de migrar dados ou realizar cutover. Esta implementação não migra identidades e não importa dados. Em produção, configure `DATABASE_CA_CERT` com o conteúdo PEM da CA Aiven (ou `DATABASE_CA_CERT_PATH` para um arquivo montado) e use segredos de um gerenciador seguro. Pool e migrations validam o certificado; não use `sslmode=disable`.

@@ -16,7 +16,7 @@ import { assertSectorAccess } from './services/access.js';
 declare module 'fastify' { interface FastifyRequest { principal?: Principal } }
 const id = z.string().uuid();
 const loginSchema = z.object({ email: z.string().email().max(254), password: z.string().min(1).max(200) }).strict();
-const responseSchema = z.object({ attendedAt: z.string().datetime(), npsScore: z.number().int().min(0).max(10), answers: z.array(z.object({ questionId: id, score: z.number().int().min(1).max(5), questionText: z.string().max(300) }).strict()).max(config.PUBLIC_SUBMISSION_MAX_FIELDS), complaint: z.object({ comment: z.string().max(2000).nullable().optional(), contact: z.string().max(30).optional(), consent: z.boolean() }).strict().optional() }).strict();
+  const responseSchema = z.object({ attendedAt: z.string().datetime().optional(), npsScore: z.number().int().min(0).max(10), answers: z.array(z.object({ questionId: id, score: z.number().int().min(1).max(5), questionText: z.string().max(300) }).strict()).max(config.PUBLIC_SUBMISSION_MAX_FIELDS), complaint: z.object({ comment: z.string().max(2000).nullable().optional(), contact: z.string().max(30).optional(), consent: z.boolean() }).strict().optional() }).strict();
 const authHeader = async (request: FastifyRequest) => {
   const header = request.headers.authorization;
   if (!header?.startsWith('Bearer ')) throw new AppError(401, 'Authentication required', 'UNAUTHORIZED');
@@ -43,6 +43,7 @@ const openApiPaths = {
   '/api/v1/surveys/public/{slug}/responses': { post: { summary: 'Submit an idempotent survey response', tags: ['surveys'], parameters: [{ name: 'slug', in: 'path', required: true, schema: { type: 'string' } }, { name: 'Idempotency-Key', in: 'header', required: true, schema: { type: 'string', format: 'uuid' } }], requestBody: { required: true, content: { 'application/json': { schema: { type: 'object', additionalProperties: false, required: ['attendedAt', 'npsScore', 'answers'], properties: { attendedAt: { type: 'string', format: 'date-time', description: 'Patient-entered appointment date and time, separate from submission time.' }, npsScore: { type: 'integer', minimum: 0, maximum: 10 }, answers: { type: 'array', maxItems: 100, items: { type: 'object', additionalProperties: false, required: ['questionId', 'score', 'questionText'], properties: { questionId: { type: 'string', format: 'uuid' }, score: { type: 'integer', minimum: 1, maximum: 5 }, questionText: { type: 'string', maxLength: 300 } } } }, complaint: { type: 'object', additionalProperties: false, required: ['consent'], properties: { comment: { type: ['string', 'null'], maxLength: 2000 }, contact: { type: 'string', maxLength: 30 }, consent: { type: 'boolean' } } } } } } } }, responses: { '201': { description: 'Response created' }, '200': { description: 'Previously submitted response' }, '400': { description: 'Invalid response' } } } },
   '/api/v1/dashboard/metrics': { get: { summary: 'Get scoped dashboard metrics', tags: ['dashboard'], security: [{ bearerAuth: [] }], responses: { '200': { description: 'Metrics for permitted sectors' } } } },
   '/api/v1/sectors': { get: { summary: 'List permitted sectors', tags: ['sectors'], security: [{ bearerAuth: [] }], responses: { '200': { description: 'Sector list' } } }, post: { summary: 'Create sector (Admin or Ombudsman)', tags: ['sectors'], security: [{ bearerAuth: [] }], responses: { '201': { description: 'Sector created' } } } },
+  '/api/v1/sectors/public': { get: { summary: 'List sectors with published surveys', tags: ['sectors'], responses: { '200': { description: 'Public sector list' } } } },
   '/api/v1/surveys': { post: { summary: 'Publish survey (Admin or Ombudsman)', tags: ['surveys'], security: [{ bearerAuth: [] }], responses: { '201': { description: 'Survey published' } } } },
   '/api/v1/questions': { get: { summary: 'List active questions (Admin or Ombudsman)', tags: ['questions'], security: [{ bearerAuth: [] }], responses: { '200': { description: 'Question list' } } }, post: { summary: 'Create rating question (Admin or Ombudsman)', tags: ['questions'], security: [{ bearerAuth: [] }], responses: { '201': { description: 'Question created' } } } },
   '/api/v1/questions/{id}': { patch: { summary: 'Deactivate rating question', tags: ['questions'], security: [{ bearerAuth: [] }], responses: { '200': { description: 'Question deactivated' } } } },
@@ -68,6 +69,7 @@ export function buildApp() {
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof z.ZodError) return reply.code(400).send({ error: { code: 'VALIDATION_ERROR', message: 'Invalid request', requestId: request.id } });
     if (error instanceof AppError) return reply.code(error.statusCode).send({ error: { code: error.code, message: error.message, requestId: request.id } });
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23505') return reply.code(409).send({ error: { code: 'CONFLICT', message: 'Resource already exists', requestId: request.id } });
     request.log.error({ err: error, requestId: request.id }, 'request failed');
     return reply.code(500).send({ error: { code: 'INTERNAL_ERROR', message: 'Internal server error', requestId: request.id } });
   });
@@ -176,6 +178,10 @@ export function buildApp() {
       return sectorId ? result.rows.filter((row) => row.id === sectorId) : result.rows;
     } finally { client.release(); }
   });
+  app.get('/api/v1/sectors/public', async () => {
+    const result = await pool.query("SELECT s.id, s.name, s.slug, s.active FROM sectors s JOIN surveys sv ON sv.sector_id = s.id WHERE s.active = true AND sv.status = 'published' ORDER BY s.name");
+    return result.rows;
+  });
   app.post('/api/v1/sectors', { preHandler: requirePanel }, async (request, reply) => {
     if (!['admin', 'ombudsman'].includes(request.principal!.role)) throw forbidden();
     const input = z.object({ name: z.string().trim().min(2).max(100), slug: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/).max(100) }).strict().parse(request.body);
@@ -183,26 +189,40 @@ export function buildApp() {
     return reply.code(201).send(result.rows[0]);
   });
   app.get('/api/v1/questions', { preHandler: requirePanel }, async (request) => {
-    if (!['admin', 'ombudsman'].includes(request.principal!.role)) throw forbidden();
-    const result = await pool.query('SELECT id, text, kind, sector_id, position, active FROM questions WHERE active = true ORDER BY position, id');
+    const principal = request.principal!;
+    const result = ['admin', 'ombudsman'].includes(principal.role)
+      ? await pool.query('SELECT id, text, kind, sector_id, position, active FROM questions WHERE active = true ORDER BY position, id')
+      : await pool.query('SELECT q.id, q.text, q.kind, q.sector_id, q.position, q.active FROM questions q WHERE q.active = true AND (q.sector_id IS NULL OR q.sector_id IN (SELECT sector_id FROM sector_managers WHERE profile_id = $1)) ORDER BY q.position, q.id', [principal.id]);
     return result.rows;
   });
   app.post('/api/v1/surveys', { preHandler: requirePanel }, async (request, reply) => {
-    if (!['admin', 'ombudsman'].includes(request.principal!.role)) throw forbidden();
     const input = z.object({ sector_id: id, title: z.string().trim().min(2).max(150), tablet_reset_seconds: z.number().int().min(10).max(120) }).strict().parse(request.body);
+    if (request.principal!.role === 'sector_manager') {
+      const client = await pool.connect();
+      try { await assertSectorAccess(client, request.principal!, input.sector_id); } finally { client.release(); }
+    } else if (!['admin', 'ombudsman'].includes(request.principal!.role)) throw forbidden();
     const result = await pool.query("INSERT INTO surveys (sector_id, title, tablet_reset_seconds, status, published_at) VALUES ($1, $2, $3, 'published', now()) RETURNING id, sector_id, title, status, tablet_reset_seconds", [input.sector_id, input.title, input.tablet_reset_seconds]);
     return reply.code(201).send(result.rows[0]);
   });
   app.post('/api/v1/questions', { preHandler: requirePanel }, async (request, reply) => {
-    if (!['admin', 'ombudsman'].includes(request.principal!.role)) throw forbidden();
     const input = z.object({ text: z.string().trim().min(3).max(300), position: z.number().int().min(0).max(1000), sector_id: id.nullable() }).strict().parse(request.body);
+    if (request.principal!.role === 'sector_manager') {
+      if (!input.sector_id) throw forbidden();
+      const client = await pool.connect();
+      try { await assertSectorAccess(client, request.principal!, input.sector_id); } finally { client.release(); }
+    } else if (!['admin', 'ombudsman'].includes(request.principal!.role)) throw forbidden();
     const result = await pool.query("INSERT INTO questions (text, position, sector_id, kind, required) VALUES ($1, $2, $3, 'rating', false) RETURNING id, text, kind, sector_id, position, active", [input.text, input.position, input.sector_id]);
     return reply.code(201).send(result.rows[0]);
   });
   app.patch('/api/v1/questions/:id', { preHandler: requirePanel }, async (request) => {
-    if (!['admin', 'ombudsman'].includes(request.principal!.role)) throw forbidden();
     const questionId = id.parse((request.params as Record<string, unknown>).id);
     const input = z.object({ active: z.literal(false) }).strict().parse(request.body);
+    if (request.principal!.role === 'sector_manager') {
+      const owner = await pool.query('SELECT sector_id FROM questions WHERE id = $1', [questionId]);
+      if (!owner.rowCount || !owner.rows[0].sector_id) throw forbidden();
+      const client = await pool.connect();
+      try { await assertSectorAccess(client, request.principal!, owner.rows[0].sector_id as string); } finally { client.release(); }
+    } else if (!['admin', 'ombudsman'].includes(request.principal!.role)) throw forbidden();
     const result = await pool.query("UPDATE questions SET active = $2 WHERE id = $1 AND kind = 'rating' RETURNING id, active", [questionId, input.active]);
     if (!result.rowCount) throw notFound(); return result.rows[0];
   });
