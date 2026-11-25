@@ -84,16 +84,16 @@ Com a configuração padrão, a API escuta em `http://localhost:3001`. Documenta
 - [Plano e relatório de testes](docs/plano-e-relatorio-de-testes.md)
 - [Referência de endpoints](docs/API.md)
 - [Modelo de dados](docs/DATABASE.md)
+- [Modelo de dados e requisitos](docs/modelo-de-dados-e-requisitos.md)
+- [Padrões de banco de dados](docs/padroes-banco-de-dados.md)
+- [Mapeamento de classes e consultas](docs/mapeamento-classes-e-consultas.md)
+- [Segurança e nuvem](docs/seguranca-e-nuvem.md)
+- [Contribuições individuais de banco de dados](docs/contribuicoes-banco-de-dados.md)
+- [Pitch técnico de banco de dados](docs/pitch-banco-de-dados.md)
 - [Segurança](docs/SECURITY.md)
 - [Migração](docs/MIGRATION.md)
 
 **Documentação Online da API:** disponível localmente em `http://localhost:3001/api/docs` quando a API está em execução. URL pública: [PREENCHER: URL publicada, se houver].
-
-**Quadro Kanban:** [PREENCHER: link do quadro Kanban]. Não foi localizado link nem evidência do quadro neste repositório.
-
-## Integrantes e responsabilidades
-
-O histórico Git disponível contém commits registrados por `Felipe R.` e `DoubleFelipe`, ambos com o mesmo endereço de e-mail; as mensagens registram mudanças gerais, sem divisão individual verificável por requisito ou tarefa. Integrantes da dupla e responsabilidades: [PREENCHER pela equipe com confirmação].
 
 ## Publicação
 
