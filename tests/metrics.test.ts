@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { average, calculateNps, satisfaction, shiftFor } from './metrics.js';
+import { average, calculateNps, satisfaction, shiftFor } from '../src/domain/metrics.js';
 
 describe('survey metrics', () => {
   it('calculates NPS from promoters, passives, and detractors', () => {

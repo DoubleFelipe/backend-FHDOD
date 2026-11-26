@@ -1,6 +1,6 @@
 # API HTTP
 
-Prefixo: `/api/v1`. Interface OpenAPI/Swagger: `/api/docs`; especificação JSON: `/api/docs/json`. Erros seguem `{ "error": { "code": "...", "message": "...", "requestId": "..." } }`. Validação retorna 400, autenticação inválida 401, falta de permissão 403, recurso ausente 404 e falha inesperada 500. Em produção, respostas não incluem stack trace.
+Prefixo: `/api/v1`. As 25 operações existentes foram preservadas na refatoração MVC de 26/11/2026. Interface OpenAPI/Swagger: `/api/docs`; especificação JSON: `/api/docs/json`. Os schemas de entrada Zod também geram a documentação de corpos, parâmetros e filtros. Sucessos mantêm seus objetos/listas, sem envelope adicional. Erros seguem `{ "error": { "code": "...", "message": "...", "requestId": "..." } }`. Validação retorna 400, autenticação inválida 401, falta de permissão 403, recurso ausente 404, conflito de unicidade 409 e falha inesperada 500. Corpo acima de 32 KiB retorna 413; mídia inválida 415; rate limit 429 com cabeçalhos de espera. Respostas não incluem stack trace ou detalhes SQL.
 
 ## Autenticação
 
@@ -12,7 +12,7 @@ Prefixo: `/api/v1`. Interface OpenAPI/Swagger: `/api/docs`; especificação JSON
 | `PATCH /auth/password` | Bearer | Recebe `{currentPassword,newPassword}`; senha nova de 12 a 200 caracteres. |
 | `GET /auth/me` | Bearer | Retorna perfil ativo e sinalizador `mustChangePassword`. |
 
-Use `Authorization: Bearer <accessToken>` nas rotas do painel. Contas que precisam trocar a senha só podem acessar a rota de troca até concluí-la.
+Use `Authorization: Bearer <accessToken>` nas rotas do painel. Contas que precisam trocar a senha podem consultar `/auth/me` e trocar a senha, mas não acessar o painel até concluí-la. O backend confere o perfil ativo, papel e estado de troca atuais no banco a cada requisição protegida. Logout revoga o refresh; o access já emitido continua sujeito ao TTL e à validação do perfil ativo.
 
 ## Administração de usuários
 
@@ -46,10 +46,10 @@ Exemplo de criação:
 | `GET /dashboard/metrics` | Bearer; filtros `sectorId`, `from`, `to` (ISO) e `shift=morning\|afternoon\|night`. Retorna contagens NPS, distribuição de respostas 1–5 e agregados por setor autorizados. |
 | `GET /sectors` | Bearer; admins veem todos; gestores, apenas os setores associados. |
 | `POST /sectors` | Admin ou Ouvidoria; recebe `name` e `slug`. |
-| `POST /surveys` | Admin ou Ouvidoria; publica pesquisa para setor. |
-| `GET /questions` | Admin ou Ouvidoria; lista perguntas ativas. |
-| `POST /questions` | Admin ou Ouvidoria; cria pergunta de avaliação opcional 1–5. |
-| `PATCH /questions/{id}` | Admin ou Ouvidoria; desativa pergunta de avaliação. |
+| `POST /surveys` | Admin/Ouvidoria ou gestor atribuído ao setor; recebe `sector_id`, `title` (2–150 caracteres), `tablet_reset_seconds` (10–120) e publica pesquisa. Uma pesquisa publicada por setor. |
+| `GET /questions` | Bearer; Admin/Ouvidoria veem todas; gestor vê perguntas gerais e de seus setores. |
+| `POST /questions` | Admin/Ouvidoria ou gestor do setor; recebe `text` (3–300), `position` (0–1000), `sector_id` (UUID ou nulo para pergunta geral); cria rating opcional. Gestor não cria pergunta geral. |
+| `PATCH /questions/{id}` | Admin/Ouvidoria ou gestor do setor; recebe `{active:false}` e desativa a pergunta rating sem excluir seu histórico. |
 | `GET /settings/notifications` | Admin ou Ouvidoria. |
 | `PUT /settings/notifications` | Admin ou Ouvidoria; atualiza destinatários e ativação. |
 | `GET /complaints` | Admin e Ouvidoria; filtros `sectorId`, `status`, `limit` (1–100, padrão 25) e `offset` (0–100000). |
@@ -59,4 +59,4 @@ Exemplo de criação:
 | `GET /health/live` | Público; verifica se o processo está ativo. |
 | `GET /health/ready` | Público; retorna 503 se o banco estiver indisponível, sem expor detalhes. |
 
-`attendedAt` é opcional; quando ausente, filtros e relatórios usam `created_at` (hora de submissão). O turno é calculado em `America/Sao_Paulo`, usando `attendedAt` quando enviado e, sem ele, a hora da submissão. Nos endpoints que aceitam intervalo, `from` é inclusivo e `to` exclusivo. `GET /reports/responses` inclui respostas paginadas, notas e campos de Ouvidoria apenas para Admin/Ouvidoria. Exportação de arquivo não está implementada no backend; o frontend agrega páginas para gerar Excel.
+`attendedAt` é opcional; quando ausente, filtros e relatórios usam `created_at` (hora de submissão). O turno é calculado em `America/Sao_Paulo`, usando `attendedAt` quando enviado e, sem ele, a hora da submissão. Nos endpoints que aceitam intervalo, `from` é inclusivo e `to` exclusivo; quando ambos são informados, exige-se `from < to`. `GET /reports/responses` inclui respostas paginadas, notas e campos de Ouvidoria apenas para Admin/Ouvidoria. Exportação de arquivo não está implementada no backend; o frontend agrega páginas para gerar Excel.

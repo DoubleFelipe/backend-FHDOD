@@ -6,7 +6,7 @@ Registra as evidências disponíveis no código sobre conexão, infraestrutura e
 
 ## 2. Infraestrutura em nuvem
 
-O banco é PostgreSQL. `DATABASE_URL` aponta para a instância configurada pelo operador. `.env.example` comenta o uso de CA Aiven; `src/infrastructure/postgres-ssl.ts` valida CA em produção; `docs/SECURITY.md` recomenda Aiven. Assim, Aiven é o provedor esperado/documentado, mas **instância, região, plano e disponibilidade não foram verificados**. `render.yaml` descreve um serviço web Node no Render com build, migration pre-deploy e health check; não comprova implantação ativa.
+O banco é PostgreSQL. `DATABASE_URL` aponta para a instância configurada pelo operador. `.env.example` comenta o uso de CA Aiven; `src/config/postgres-ssl.ts` valida CA em produção; `docs/SECURITY.md` recomenda Aiven. Assim, Aiven é o provedor esperado/documentado, mas **instância, região, plano e disponibilidade não foram verificados**. `render.yaml` descreve um serviço web Node no Render com build, migration pre-deploy e health check; não comprova implantação ativa.
 
 ```mermaid
 flowchart LR
@@ -33,7 +33,7 @@ DATABASE_CONNECTION_TIMEOUT_MS=5000
 DATABASE_STATEMENT_TIMEOUT_MS=10000
 ```
 
-Runtime usa `DATABASE_URL`; migration usa a credencial separada `MIGRATION_DATABASE_URL`. Em produção, `src/config.ts` exige ambas e um dos campos da CA. `postgres-ssl.ts` configura `rejectUnauthorized: true`. O helper remove opções `sslmode`/certificados da URL para evitar conflito com configuração SSL explícita. `sslmode=disable` do exemplo é apenas para PostgreSQL local.
+Runtime usa `DATABASE_URL`; migration usa a credencial separada `MIGRATION_DATABASE_URL`. Em produção, `src/config/index.ts` exige ambas e um dos campos da CA. `postgres-ssl.ts` configura `rejectUnauthorized: true`. O helper remove opções `sslmode`/certificados da URL para evitar conflito com configuração SSL explícita. `sslmode=disable` do exemplo é apenas para PostgreSQL local.
 
 Outras variáveis em `.env.example` controlam ambiente/porta, segredos JWT e TTL, CORS, rate limits, limites de envio, logs e criação temporária do administrador. O arquivo `.gitignore` ignora `.env` e `.env.*`, com exceção explícita de `.env.example`. Não há valor de credencial real documentado neste guia.
 
@@ -41,7 +41,7 @@ Outras variáveis em `.env.example` controlam ambiente/porta, segredos JWT e TTL
 
 | Controle | Situação | Evidência/limite |
 |---|---|---|
-| Credenciais via ambiente | Implementado e verificado | `src/config.ts`, `.env.example`; `.env` local fora do Git |
+| Credenciais via ambiente | Implementado e verificado | `src/config/index.ts`, `.env.example`; `.env` local fora do Git |
 | Proteção de `.env` no Git | Implementado e verificado | `.gitignore` ignora `.env` e `.env.*`, libera `.env.example` |
 | Controle de acesso ao banco / privilégio mínimo | Não foi possível verificar | Código separa URLs runtime e migration, mas usuários/permissões reais são externos |
 | TLS entre API e PostgreSQL em produção | Parcialmente implementado | API exige CA e valida certificado; configuração/servidor externo não foi testado |
