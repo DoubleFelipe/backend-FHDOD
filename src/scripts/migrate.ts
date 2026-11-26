@@ -2,9 +2,10 @@ import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import pg from 'pg';
 import { config } from '../config.js';
+import { postgresConnectionOptions } from '../infrastructure/postgres-ssl.js';
 
 if (!config.MIGRATION_DATABASE_URL) throw new Error('MIGRATION_DATABASE_URL is required to run migrations');
-const client = new pg.Client({ connectionString: config.MIGRATION_DATABASE_URL });
+const client = new pg.Client(postgresConnectionOptions(config.MIGRATION_DATABASE_URL));
 try {
   await client.connect();
   await client.query('CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())');
