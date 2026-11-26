@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 
 let app: FastifyInstance;
@@ -7,9 +7,12 @@ beforeAll(async () => {
   process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
   process.env.ACCESS_TOKEN_SECRET = 'a'.repeat(40);
   process.env.REFRESH_TOKEN_SECRET = 'b'.repeat(40);
-  const { buildApp } = await import('./app.js');
+  const { buildApp } = await import('../src/app.js');
   app = buildApp();
   await app.ready();
+});
+afterAll(async () => {
+  await app?.close();
 });
 describe('HTTP API', () => {
   it('serves liveness without a database dependency', async () => {
@@ -18,7 +21,11 @@ describe('HTTP API', () => {
     expect(response.json()).toEqual({ status: 'ok' });
   });
   it('rejects a submission without an idempotency key', async () => {
-    const response = await app.inject({ method: 'POST', url: '/api/v1/surveys/public/sample/responses', payload: { npsScore: 7, answers: [] } });
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/v1/surveys/public/sample/responses',
+      payload: { npsScore: 7, answers: [] },
+    });
     expect(response.statusCode).toBe(400);
     expect(response.json().error.code).toBe('VALIDATION_ERROR');
   });
@@ -31,7 +38,11 @@ describe('HTTP API', () => {
     expect(specification.paths).toHaveProperty('/api/v1/auth/login');
     expect(specification.paths['/api/v1/users'].post.requestBody.required).toBe(true);
     const submission = specification.paths['/api/v1/surveys/public/{slug}/responses'].post;
-    expect(submission.parameters).toContainEqual(expect.objectContaining({ name: 'Idempotency-Key', in: 'header', required: true }));
-    expect(submission.requestBody.content['application/json'].schema.required).not.toContain('attendedAt');
+    expect(submission.parameters).toContainEqual(
+      expect.objectContaining({ name: 'Idempotency-Key', in: 'header', required: true }),
+    );
+    expect(submission.requestBody.content['application/json'].schema.required).not.toContain(
+      'attendedAt',
+    );
   });
 });

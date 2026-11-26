@@ -1,10 +1,8 @@
-> **Estado atual: refatoração ausente dos fontes.** Durante a conferência final, os arquivos-fonte foram restaurados ao estado original e as novas pastas/testes desapareceram. O texto abaixo registra o trabalho e os testes executados antes dessa alteração; **não descreve uma entrega presente no checkout atual**. A reaplicação depende de esclarecer a intenção do usuário. Nenhum deploy foi realizado.
-
 # Relatório da refatoração MVC — 26/11/2026
 
 ## Resultado e escopo
 
-A refatoração foi implementada somente no backend, conforme a escolha expressa do usuário. As 25 operações HTTP e os formatos JSON de sucesso foram preservados; rotas, controllers, serviços, models, validações, middleware e configuração foram separados. Node.js, TypeScript, Fastify, PostgreSQL, Zod, JWT e Argon2id foram mantidos. A dependência nova PGlite é exclusiva de desenvolvimento/testes; nenhuma tecnologia do runtime foi substituída.
+A refatoração foi aplicada aos arquivos-fonte de `C:/Users/Guilherme/Documents/HTML/Trabalho-ecommerce/backend-FHDOD`, na branch `feat/arquitetura`, conforme a escolha expressa do usuário. As mudanças estão no diretório `src/` deste projeto; o frontend não foi alterado. As 25 operações HTTP e os formatos JSON de sucesso foram preservados; rotas, controllers, serviços, models, validações, middleware e configuração foram separados. Node.js, TypeScript, Fastify, PostgreSQL, Zod, JWT e Argon2id foram mantidos. A dependência nova PGlite é exclusiva de desenvolvimento/testes; nenhuma tecnologia do runtime foi substituída.
 
 O diretório irmão `../FHDOD` foi consultado apenas para identificar a comunicação atual (Next.js, chamadas REST e cookies HttpOnly). Seus arquivos não foram alterados. O frontend continua externo, constituindo a camada de apresentação. Não houve alteração visual, importação de dados, migration em banco existente, exclusão de dados ou deploy. As migrations SQL e `render.yaml` permanecem inalterados.
 
@@ -120,12 +118,11 @@ Como o schema não mudou, o rollback da refatoração consiste em restaurar a ve
 
 ## Inventário de arquivos
 
-Inventário da refatoração preservada no stash `7d59419` do GitHub Desktop, comparado à sua base. No checkout atual, apenas este relatório está fora do Git; os fontes abaixo aguardam restauração. Os caminhos removidos foram realocados, sem remoção de funcionalidades.
+Inventário dos arquivos presentes no checkout após a aplicação da arquitetura MVC. Os caminhos removidos foram realocados, sem remoção de funcionalidades.
 
-### Criados (69)
+### Criados (68)
 
 - `docs/REFACTOR-PLAN.md`
-- `docs/REFACTOR-REPORT.md`
 - `src/config/database.ts`
 - `src/config/index.ts`
 - `src/config/openapi-schemas.ts`
@@ -195,11 +192,13 @@ Inventário da refatoração preservada no stash `7d59419` do GitHub Desktop, co
 - `tsconfig.test.json`
 
 
-### Modificados (23)
+### Modificados (25)
 
+- `.env.example`
 - `README.md`
 - `docs/API.md`
 - `docs/ARCHITECTURE.md`
+- `docs/REFACTOR-REPORT.md`
 - `docs/SECURITY.md`
 - `docs/TESTING.md`
 - `docs/arquitetura-backend.md`

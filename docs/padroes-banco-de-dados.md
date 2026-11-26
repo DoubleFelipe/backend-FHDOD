@@ -28,7 +28,7 @@ Os nomes dos índices não seguem um único prefixo uniforme; manter clareza e c
 
 ## 4. Organização e consultas
 
-O esquema fica em `database/migrations/`, separado do código TypeScript em `src/`. As migrations SQL são numeradas e aplicadas em ordem lexical; `schema_migrations` registra o nome aplicado. SQL é escrito nas rotas de `src/app.ts` e nos serviços de `src/services/`, usando parâmetros `$1`, `$2`, etc. Não há camada Repository ou arquivo DAO separado identificado. Transações usam cliente obtido do pool com `BEGIN`/`COMMIT`/`ROLLBACK`.
+O esquema fica em `database/migrations/`, separado do código TypeScript em `src/`. As migrations SQL são numeradas e aplicadas em ordem lexical; `schema_migrations` registra o nome aplicado. SQL da API fica em `src/models/`, usando parâmetros `$1`, `$2`, etc. Os serviços delimitam as transações com `src/utils/database.ts`, que garante commit/rollback e liberação do cliente.
 
 **Recomendação:** continuar migrations incrementais e revisáveis; não editar migration já aplicada em ambientes compartilhados; criar índices guiados por consultas e medição; manter SQL parametrizado e ordenação explícita quando a API depende dela.
 
