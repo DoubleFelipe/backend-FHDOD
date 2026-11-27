@@ -11,7 +11,13 @@ export function satisfaction(scores: number[]): number | null {
   return scores.length ? (scores.filter((score) => score >= 4).length / scores.length) * 100 : null;
 }
 export function shiftFor(date: Date): 'morning' | 'afternoon' | 'night' {
-  const hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', hour: '2-digit', hourCycle: 'h23' }).format(date));
+  const hour = Number(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Sao_Paulo',
+      hour: '2-digit',
+      hourCycle: 'h23',
+    }).format(date),
+  );
   if (hour >= 7 && hour < 12) return 'morning';
   if (hour >= 12 && hour < 19) return 'afternoon';
   return 'night';

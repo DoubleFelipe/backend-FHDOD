@@ -1,3 +1,5 @@
+> Registro histórico de 25/11/2026, anterior à refatoração MVC. Para a suíte e os resultados atuais, consulte [TESTING.md](TESTING.md) e [REFACTOR-REPORT.md](REFACTOR-REPORT.md).
+
 # Plano e relatório de testes
 
 **Projeto:** API FHDOD — Pesquisa de Satisfação · **Data de execução:** 25/11/2026.

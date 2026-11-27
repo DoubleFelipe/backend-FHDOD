@@ -1,3 +1,5 @@
+> Atualização de arquitetura em 26/11/2026: rotas, controllers, serviços e models foram separados; ver [relatório](REFACTOR-REPORT.md). Regras de negócio preservadas.
+
 # Especificação de Requisitos de Software — API FHDOD
 
 **Versão:** 1.0 · **Data:** 25/11/2026 · **Base de análise:** código e migrations presentes no repositório. Este documento usa a organização da IEEE 830 e características da ISO/IEC 25010 como referências; não declara conformidade formal com essas normas.
@@ -20,7 +22,7 @@ Registrar requisitos que possam ser ligados a código ou esquema existente, deli
 
 ### 2.2 Escopo
 
-A API oferece rotas REST para autenticação, administração de usuários, setores e pesquisas, recebimento público de respostas, indicadores e gestão de ocorrências. O repositório não contém frontend, worker de e-mail, configuração de Kanban nem evidência de implantação pública.
+A API oferece rotas REST para autenticação, administração de usuários, setores e pesquisas, recebimento público de respostas, indicadores e gestão de ocorrências. O frontend não está incluído neste repositório. As URLs de implantação informadas pelo responsável são [frontend](https://fhdod.vercel.app/) e [API](https://backend-fhdod.onrender.com/); disponibilidade e configuração dos serviços não foram verificadas neste ambiente. O repositório também não contém worker de e-mail ou configuração de Kanban.
 
 ### 2.3 Público-alvo
 
@@ -188,19 +190,19 @@ Os códigos abaixo identificam comportamento implementado. Pré-condições, flu
 
 | Código | Qualidade e requisito | Evidência / critério verificável |
 |---|---|---|
-| RNF001 | Segurança: autenticação por bearer JWT e perfis separados | `src/infrastructure/auth.ts`, preHandlers em `src/app.ts`; respostas HTTP 401/403 |
-| RNF002 | Segurança: segredos independentes, mínimo 32 caracteres; produção exige CA PostgreSQL e URL de migration | `src/config.ts`; inicialização inválida deve falhar antes de servir tráfego |
+| RNF001 | Segurança: autenticação por bearer JWT e perfis separados | `src/infrastructure/auth.ts`, preHandlers em `src/middlewares/auth.ts`; respostas HTTP 401/403 |
+| RNF002 | Segurança: segredos independentes, mínimo 32 caracteres; produção exige CA PostgreSQL e URL de migration | `src/config/index.ts`; inicialização inválida deve falhar antes de servir tráfego |
 | RNF003 | Segurança: consultas SQL parametrizadas e hash Argon2id | SQL usa parâmetros `$n`; `auth.ts` usa Argon2id |
 | RNF004 | Segurança: limitar volume/tamanho de entrada | Fastify bodyLimit 32 KiB; rate limits global, login e submissão; validações Zod |
-| RNF005 | Privacidade: respostas de erro não expõem stack; logs ocultam authorization/cookie | Error handler em `src/app.ts`; logger com campos redacted |
+| RNF005 | Privacidade: respostas de erro não expõem stack; logs ocultam authorization/cookie | Error handler em `src/middlewares/errors.ts`; logger com campos redacted |
 | RNF006 | Confiabilidade: gravação de resposta/ocorrência/chave é transacional e repetição idempotente | `src/services/survey.ts`; chave única `(survey_id, submission_id)` |
 | RNF007 | Integridade de dados: UUID, foreign keys, enums, checks e índices | `database/migrations/*.sql` |
 | RNF008 | Manutenibilidade: TypeScript estrito e lint/typecheck/build disponíveis | `tsconfig.json`, scripts npm; comandos executáveis |
-| RNF009 | Compatibilidade: plataforma Node 22+ e esquema OpenAPI 3.1 | `package.json`, `src/app.ts` |
-| RNF010 | Desempenho: limites de pool/timeouts são configuráveis; não há SLO medido | `src/config.ts` e `database.ts`; metas de latência/carga: a confirmar |
+| RNF009 | Compatibilidade: plataforma Node 22+ e esquema OpenAPI 3.1 | `package.json`, `src/routes/`, `src/services/` |
+| RNF010 | Desempenho: limites de pool/timeouts são configuráveis; não há SLO medido | `src/config/index.ts` e `database.ts`; metas de latência/carga: a confirmar |
 | RNF011 | Usabilidade: documentação interativa local e health endpoints | `/api/docs`, `/api/v1/health/*`; textos e acessibilidade do frontend fora do escopo |
 | RNF012 | Escalabilidade: aplicação HTTP sem estado de sessão em memória; sessões refresh persistem no banco | estado de refresh em `refresh_sessions`; capacidade/carga horizontal não foi medida |
-| RNF013 | Confiabilidade de produção: TLS validado no PostgreSQL em modo produção | `src/infrastructure/postgres-ssl.ts`, validação de configuração |
+| RNF013 | Confiabilidade de produção: TLS validado no PostgreSQL em modo produção | `src/config/postgres-ssl.ts`, validação de configuração |
 | RNF014 | Cobertura automatizada: nenhuma meta nem ferramenta de cobertura configurada | Vitest disponível; cobertura percentual não identificada |
 
 Não foi estabelecida meta numérica de disponibilidade, latência, concorrência, acessibilidade ou recuperação; definir com a equipe caso sejam critérios de avaliação.
@@ -222,7 +224,7 @@ Não foi estabelecida meta numérica de disponibilidade, latência, concorrênci
 
 - API e banco são dependências obrigatórias; UI não faz parte do repositório.
 - Sem envio de e-mail, exportação de arquivos ou migração de identidade/dados legados comprovados.
-- A configuração `render.yaml` é blueprint, não confirmação de implantação.
+- `render.yaml` descreve a configuração da API no Render; as URLs públicas informadas são registradas neste documento e no README, sem afirmar disponibilidade operacional.
 - Apenas migrations numeradas 001/002 são parte do esquema visível; compatibilidade com schema legado não comprovada.
 
 ## 8. Casos de uso / fluxos principais
@@ -250,18 +252,18 @@ Fluxo do painel: login → bearer → checagem de troca de senha → autorizaç�
 
 | Código | Descrição | Funcionalidade | Localização | Evidência | Situação |
 |---|---|---|---|---|---|
-| RF001 | Saúde live/ready | Monitoramento | `src/app.ts` | Rotas `/health/*` | Implementado |
-| RF002 | Login, sessão, senha e perfil | Autenticação | `src/app.ts`, `src/infrastructure/auth.ts` | Rotas `/auth/*`, `refresh_sessions` | Implementado |
-| RF003 | Administração de contas | Usuários | `src/app.ts`, migration 001 | `/users`, `profiles`, `sector_managers` | Implementado |
-| RF004 | Consulta pública de setor/pesquisa | Catálogo | `src/app.ts`, `src/services/survey.ts` | `/sectors/public`, `/surveys/public/:slug` | Implementado |
-| RF005 | Submissão validada e idempotente | Respostas | `src/app.ts`, `src/services/survey.ts` | POST `/responses`, transação SQL | Implementado |
-| RF006 | Listar/criar setores com autorização | Setores | `src/app.ts`, `src/services/access.ts` | `/sectors` | Implementado |
-| RF007 | Publicar pesquisa | Pesquisas | `src/app.ts`, migration 001 | POST `/surveys`, índice parcial | Implementado |
-| RF008 | Perguntas rating | Perguntas | `src/app.ts` | `/questions` | Implementado |
-| RF009 | Configurar destinatários | Notificações | `src/app.ts`, `app_settings` | `/settings/notifications` | Parcial: configuração existe; envio não identificado |
-| RF010 | Agregados do painel e TV | Indicadores | `src/app.ts`, `src/domain/metrics.ts` | `/dashboard/metrics`, `/tv/metrics` | Implementado |
-| RF011 | Listar/atualizar ocorrência | Ouvidoria | `src/app.ts` | `/complaints` | Implementado |
-| RF012 | Relatório paginado | Respostas | `src/app.ts` | `/reports/responses` | Implementado |
+| RF001 | Saúde live/ready | Monitoramento | `src/routes/`, `src/services/` | Rotas `/health/*` | Implementado |
+| RF002 | Login, sessão, senha e perfil | Autenticação | `src/routes/`, `src/services/`, `src/infrastructure/auth.ts` | Rotas `/auth/*`, `refresh_sessions` | Implementado |
+| RF003 | Administração de contas | Usuários | `src/routes/`, `src/services/`, migration 001 | `/users`, `profiles`, `sector_managers` | Implementado |
+| RF004 | Consulta pública de setor/pesquisa | Catálogo | `src/routes/`, `src/services/`, `src/services/survey.ts` | `/sectors/public`, `/surveys/public/:slug` | Implementado |
+| RF005 | Submissão validada e idempotente | Respostas | `src/routes/`, `src/services/`, `src/services/survey.ts` | POST `/responses`, transação SQL | Implementado |
+| RF006 | Listar/criar setores com autorização | Setores | `src/routes/`, `src/services/`, `src/services/access.ts` | `/sectors` | Implementado |
+| RF007 | Publicar pesquisa | Pesquisas | `src/routes/`, `src/services/`, migration 001 | POST `/surveys`, índice parcial | Implementado |
+| RF008 | Perguntas rating | Perguntas | `src/routes/`, `src/services/` | `/questions` | Implementado |
+| RF009 | Configurar destinatários | Notificações | `src/routes/`, `src/services/`, `app_settings` | `/settings/notifications` | Parcial: configuração existe; envio não identificado |
+| RF010 | Agregados do painel e TV | Indicadores | `src/routes/`, `src/services/`, `src/domain/metrics.ts` | `/dashboard/metrics`, `/tv/metrics` | Implementado |
+| RF011 | Listar/atualizar ocorrência | Ouvidoria | `src/routes/`, `src/services/` | `/complaints` | Implementado |
+| RF012 | Relatório paginado | Respostas | `src/routes/`, `src/services/` | `/reports/responses` | Implementado |
 | Kanban | Acompanhar tarefas da dupla | Processo | Link a fornecer pela equipe | Nenhum board/link no checkout | A confirmar pela equipe |
 | Notificações por e-mail | Entregar alertas | Worker externo | `notification_jobs` | Tabela existe; worker/provedor não encontrado | Não implementado neste repositório |
 
