@@ -18,4 +18,6 @@ export async function surveyRoutes(app: FastifyInstance) {
     controller.submit,
   );
   app.post('/surveys', { preHandler: requirePanel }, controller.publish);
+  app.get('/surveys', { preHandler: requirePanel }, controller.list);
+  app.delete('/surveys/:id', { preHandler: requirePanel }, controller.archive);
 }
