@@ -7,7 +7,22 @@ import type {
   NotificationJob,
   SubmissionKey,
   Survey,
+  ManagedSurvey,
 } from './entities.js';
+
+export function list(db: Database = pool) {
+  return db.query<ManagedSurvey>(
+    "SELECT sv.id, sv.title, sv.status, sv.sector_id, s.name AS sector_name, s.slug AS sector_slug FROM surveys sv JOIN sectors s ON s.id = sv.sector_id WHERE sv.status <> 'archived' ORDER BY sv.created_at DESC, sv.id",
+  );
+}
+
+export function archive(values: [surveyId: string], db: Database = pool) {
+  // Waits for submissions holding FOR SHARE before unpublishing; history is preserved.
+  return db.query<Pick<Survey, 'id'>>(
+    "UPDATE surveys SET status = 'archived' WHERE id = $1 RETURNING id",
+    values,
+  );
+}
 
 export function findPublic(values: [slug: string], db: Database = pool) {
   return db.query<PublicSurveyRow>(

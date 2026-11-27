@@ -54,6 +54,9 @@ export function applyRequestSchemas(paths: typeof openApiPaths) {
   Object.assign(paths['/api/v1/questions/{id}'].patch, {
     parameters: parameters(idParams, 'path'),
   });
+  Object.assign(paths['/api/v1/surveys/{id}'].delete, {
+    parameters: parameters(idParams, 'path'),
+  });
   Object.assign(paths['/api/v1/complaints/{id}'].patch, {
     parameters: parameters(idParams, 'path'),
   });

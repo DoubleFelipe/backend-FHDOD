@@ -20,6 +20,8 @@ const protectedOperations: [HTTPMethods, string][] = [
   ['GET', '/sectors'],
   ['POST', '/sectors'],
   ['POST', '/surveys'],
+  ['GET', '/surveys'],
+  ['DELETE', '/surveys/00000000-0000-4000-8000-000000000001'],
   ['GET', '/questions'],
   ['POST', '/questions'],
   ['PATCH', '/questions/00000000-0000-4000-8000-000000000001'],
@@ -91,6 +93,17 @@ describe('HTTP security without database connections', () => {
     });
     expect(preflight.statusCode).toBe(204);
     expect(preflight.headers['access-control-allow-methods']).toContain('PATCH');
+    const deletion = await app.inject({
+      method: 'OPTIONS',
+      url: '/api/v1/surveys/00000000-0000-4000-8000-000000000001',
+      headers: {
+        origin: 'http://localhost:3000',
+        'access-control-request-method': 'DELETE',
+        'access-control-request-headers': 'authorization',
+      },
+    });
+    expect(deletion.statusCode).toBe(204);
+    expect(deletion.headers['access-control-allow-methods']).toContain('DELETE');
     expect(allowed.headers['x-content-type-options']).toBe('nosniff');
   });
   it('preserves 429 and retry headers when login rate limit is exceeded', async () => {

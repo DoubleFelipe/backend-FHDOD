@@ -173,6 +173,17 @@ export const openApiPaths = {
     },
   },
   '/api/v1/surveys': {
+    get: {
+      summary: 'Listar pesquisas não arquivadas',
+      description:
+        'Requer Bearer e perfil Admin ou Ouvidoria. Inclui identificação, nome e slug do setor.',
+      tags: ['surveys'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': { description: 'Lista de pesquisas não arquivadas.' },
+        '403': { description: 'Perfil sem permissão para esta operação.' },
+      },
+    },
     post: {
       summary: 'Publicar pesquisa',
       description:
@@ -180,6 +191,21 @@ export const openApiPaths = {
       tags: ['surveys'],
       security: [{ bearerAuth: [] }],
       responses: { '201': { description: 'Pesquisa publicada.' } },
+    },
+  },
+  '/api/v1/surveys/{id}': {
+    delete: {
+      summary: 'Arquivar pesquisa',
+      description:
+        'Requer Bearer e perfil Admin ou Ouvidoria. Retira a publicação e preserva respostas e indicadores históricos. Repetir o arquivamento retorna 204.',
+      tags: ['surveys'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '204': { description: 'Pesquisa arquivada; resposta sem corpo.' },
+        '400': { description: 'Identificador inválido.' },
+        '403': { description: 'Perfil sem permissão para esta operação.' },
+        '404': { description: 'Pesquisa não encontrada.' },
+      },
     },
   },
   '/api/v1/questions': {
