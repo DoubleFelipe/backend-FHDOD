@@ -15,7 +15,7 @@ O envio efetivo de e-mails e uma interface frontend não estão implementados ne
 
 ## Tecnologias e arquitetura
 
-Node.js 22+, TypeScript estrito, Fastify 5, PostgreSQL via `pg`, Zod, JWT com `jose`, hash Argon2id, plugins Fastify de CORS/Helmet/limite de requisições, Swagger/OpenAPI, Vitest, ESLint e Prettier. A API usa MVC adaptado a REST: rotas → controllers → services → models → PostgreSQL. A apresentação pertence ao frontend externo. Os contratos JSON existentes e as 25 operações sob `/api/v1` foram preservados.
+Node.js 22+, TypeScript estrito, Fastify 5, PostgreSQL via `pg`, Zod, JWT com `jose`, hash Argon2id, plugins Fastify de CORS/Helmet/limite de requisições, Swagger/OpenAPI, Vitest, ESLint e Prettier. A API usa MVC adaptado a REST: rotas → controllers → services → models → PostgreSQL. A apresentação pertence ao frontend externo. Os contratos JSON existentes foram preservados; a API oferece 27 operações sob `/api/v1`, incluindo listagem e arquivamento de pesquisas.
 
 ```text
 src/
@@ -125,7 +125,7 @@ Todas as rotas de negócio usam o prefixo `/api/v1`:
 | Autenticação | `POST /auth/login`, `/auth/refresh`, `/auth/logout`; `GET /auth/me`; `PATCH /auth/password` |
 | Usuários | `GET /users`, `POST /users` |
 | Setores | `GET /sectors/public`; `GET /sectors`, `POST /sectors` |
-| Pesquisas | `GET /surveys/public/:slug`; `POST /surveys/public/:slug/responses`; `POST /surveys` |
+| Pesquisas | `GET /surveys/public/:slug`; `POST /surveys/public/:slug/responses`; `POST /surveys`; `GET /surveys`; `DELETE /surveys/:id` |
 | Perguntas | `GET /questions`, `POST /questions`, `PATCH /questions/:id` |
 | Notificações | `GET /settings/notifications`, `PUT /settings/notifications` |
 | Indicadores | `GET /dashboard/metrics`, `GET /tv/metrics` |

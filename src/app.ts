@@ -23,7 +23,7 @@ export function buildApp() {
   app.register(cors, {
     origin: corsOrigins,
     credentials: false,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
   app.register(rateLimit, { max: config.RATE_LIMIT_MAX, timeWindow: config.RATE_LIMIT_WINDOW_MS });
   app.register(swagger, {

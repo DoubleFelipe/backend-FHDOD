@@ -542,6 +542,74 @@ describe('API with isolated PostgreSQL', () => {
     ).toBe(400);
     expect(await count('profiles')).toBeGreaterThan(0);
   });
+  it('archives surveys while preserving history and allowing a new publication', async () => {
+    const sector = (
+      await call('POST', '/sectors', 'admin', { name: 'Arquivo', slug: 'archive-test' })
+    ).json();
+    const question = (
+      await call('POST', '/questions', 'admin', {
+        text: 'Como foi?',
+        position: 0,
+        sector_id: sector.id,
+      })
+    ).json();
+    const publication = {
+      sector_id: sector.id,
+      title: 'Pesquisa para arquivar',
+      tablet_reset_seconds: 30,
+    };
+    const published = await call('POST', '/surveys', 'admin', publication);
+    expect(published.statusCode).toBe(201);
+    const survey = published.json();
+    expect((await call('POST', '/surveys', 'admin', publication)).statusCode).toBe(409);
+    const response = await submit(
+      {
+        ...submission(2, question.id),
+        complaint: { comment: 'Comentário histórico', consent: false },
+      },
+      'archive-test',
+    );
+    expect(response.statusCode).toBe(201);
+    const reportUrl = `/reports/responses?sectorId=${sector.id}`;
+    const metricsUrl = `/dashboard/metrics?sectorId=${sector.id}`;
+    const reportBefore = (await call('GET', reportUrl, 'admin')).json();
+    const metricsBefore = (await call('GET', metricsUrl, 'admin')).json();
+    expect(reportBefore.items).toHaveLength(1);
+    expect(reportBefore.items[0]).toMatchObject({
+      id: response.json().id,
+      answers: [expect.objectContaining({ score: 2 })],
+      complaint: expect.objectContaining({ comment: 'Comentário histórico' }),
+    });
+    const listed = await call('GET', '/surveys', 'ombudsman');
+    expect(listed.statusCode).toBe(200);
+    expect(listed.json()).toContainEqual({
+      id: survey.id,
+      title: survey.title,
+      status: 'published',
+      sector_id: sector.id,
+      sector_name: 'Arquivo',
+      sector_slug: 'archive-test',
+    });
+    expect((await call('DELETE', `/surveys/${survey.id}`, 'ombudsman')).statusCode).toBe(204);
+    expect((await call('DELETE', `/surveys/${survey.id}`, 'admin')).statusCode).toBe(204);
+    expect((await call('GET', '/surveys', 'admin')).json()).not.toContainEqual(
+      expect.objectContaining({ id: survey.id }),
+    );
+    expect((await call('GET', '/surveys/public/archive-test')).statusCode).toBe(404);
+    expect((await call('GET', '/sectors/public')).json()).not.toContainEqual(
+      expect.objectContaining({ id: sector.id }),
+    );
+    expect((await submit(submission(2, question.id), 'archive-test')).statusCode).toBe(404);
+    expect((await call('GET', reportUrl, 'admin')).json()).toEqual(reportBefore);
+    expect((await call('GET', metricsUrl, 'admin')).json()).toEqual(metricsBefore);
+    const replacement = await call('POST', '/surveys', 'admin', publication);
+    expect(replacement.statusCode).toBe(201);
+    expect(replacement.json().id).not.toBe(survey.id);
+    expect((await call('GET', '/surveys/public/archive-test')).statusCode).toBe(200);
+    expect(
+      (await database.query('SELECT status FROM surveys WHERE id = $1', [survey.id])).rows[0],
+    ).toEqual({ status: 'archived' });
+  });
   it('returns consistent errors without SQL or credential details', async () => {
     testPool.query.mockRejectedValueOnce(new Error('private password connection detail'));
     const response = await call('GET', '/sectors/public');
@@ -577,6 +645,6 @@ describe('API with isolated PostgreSQL', () => {
       }
     }
     expect(documented).toEqual(registered);
-    expect(documented.size).toBe(25);
+    expect(documented.size).toBe(27);
   });
 });

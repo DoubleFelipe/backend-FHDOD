@@ -80,6 +80,17 @@ export async function submitResponse(slug: string, idempotencyKey: string, input
 }
 export type TxClient = PoolClient;
 
+export async function list(principal: Principal) {
+  if (!['admin', 'ombudsman'].includes(principal.role)) throw forbidden();
+  return (await model.list()).rows;
+}
+
+export async function archive(principal: Principal, surveyId: string) {
+  if (!['admin', 'ombudsman'].includes(principal.role)) throw forbidden();
+  const result = await model.archive([surveyId]);
+  if (!result.rowCount) throw notFound();
+}
+
 export async function publish(principal: Principal, input: SurveyInput) {
   if (principal.role === 'sector_manager') {
     await withClient(async (client) => {

@@ -53,6 +53,10 @@ export interface Survey {
   status: 'draft' | 'published' | 'archived';
   tablet_reset_seconds: number;
 }
+export type ManagedSurvey = Pick<Survey, 'id' | 'title' | 'status' | 'sector_id'> & {
+  sector_name: string;
+  sector_slug: string;
+};
 export interface PublicSurveyRow {
   survey_id: string;
   title: string;
