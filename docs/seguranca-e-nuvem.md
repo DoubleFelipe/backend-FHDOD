@@ -6,17 +6,17 @@ Registra as evidências disponíveis no código sobre conexão, infraestrutura e
 
 ## 2. Infraestrutura em nuvem
 
-O banco é PostgreSQL. `DATABASE_URL` aponta para a instância configurada pelo operador. `.env.example` comenta o uso de CA Aiven; `src/config/postgres-ssl.ts` valida CA em produção; `docs/SECURITY.md` recomenda Aiven. Assim, Aiven é o provedor esperado/documentado, mas **instância, região, plano e disponibilidade não foram verificados**. `render.yaml` descreve um serviço web Node no Render com build, migration pre-deploy e health check; não comprova implantação ativa.
+O banco é PostgreSQL. `DATABASE_URL` aponta para a instância configurada pelo operador. `.env.example` comenta o uso de CA Aiven; `src/config/postgres-ssl.ts` valida CA em produção; `docs/SECURITY.md` recomenda Aiven. Assim, Aiven é o provedor esperado/documentado, mas **instância, região, plano e disponibilidade não foram verificados**. O responsável informou o [frontend em Vercel](https://fhdod.vercel.app/) e a [API no Render](https://backend-fhdod.onrender.com/). `render.yaml` descreve um serviço web Node no Render com build, migration pre-deploy e health check. A confirmação das URLs não comprova estado operacional, configuração ou disponibilidade; não foi possível testar acesso externo a partir deste ambiente.
 
 ```mermaid
 flowchart LR
-  C[Cliente HTTP / frontend externo] -->|HTTPS conforme implantação do cliente| R[API Fastify Node.js no Render conforme blueprint]
+  C[Frontend Vercel informado] -->|HTTPS| R[API Fastify Node.js no Render informado]
   R -->|DATABASE_URL; TLS com CA validada em produção| PG[(PostgreSQL configurado pelo operador; Aiven esperado, não verificado)]
   R -->|MIGRATION_DATABASE_URL no pre-deploy| PG
   ENV[Variáveis/segredos do ambiente] --> R
 ```
 
-O fluxo real implementado é aplicação → pool `pg` → PostgreSQL. O TLS PostgreSQL é obrigatório na configuração da API em `NODE_ENV=production`; HTTPS entre cliente e API depende da plataforma/implantação e não é comprovado pela configuração local apresentada.
+O fluxo implementado é aplicação → pool `pg` → PostgreSQL. As URLs informadas usam HTTPS para frontend e API. O TLS PostgreSQL é obrigatório na configuração da API em `NODE_ENV=production`; configuração efetiva, comunicação entre serviços e certificados não foram verificados neste ambiente.
 
 ## 3. Configuração de conexão
 
@@ -72,4 +72,4 @@ Validar no painel do provedor: existência/estado da instância, versão, regiã
 
 ## 7. Considerações finais
 
-O código implementa validação de CA para conexões PostgreSQL em produção, uso de variáveis de ambiente, parametrização SQL e controles de autenticação/entrada. O repositório oferece configuração de serviço Render e refere-se à Aiven, mas a operação real da nuvem, restrições de rede, privilégios, backups e URL publicada dependem de confirmação manual pelo responsável.
+O código implementa validação de CA para conexões PostgreSQL em produção, uso de variáveis de ambiente, parametrização SQL e controles de autenticação/entrada. O repositório oferece configuração de serviço Render e refere-se à Aiven. O responsável informou as URLs públicas de frontend e API; operação da nuvem, restrições de rede, privilégios, backups e disponibilidade continuam dependendo de validação no provedor.
