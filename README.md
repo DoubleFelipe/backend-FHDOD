@@ -79,7 +79,7 @@ Para criar o primeiro administrador, defina temporariamente `ADMIN_EMAIL`, `ADMI
 npm run dev
 ```
 
-Com a configuração padrão, a API escuta em `http://localhost:3001`. Documentação interativa: `http://localhost:3001/api/docs`; JSON OpenAPI: `http://localhost:3001/api/docs/json`. Verificações: `/api/v1/health/live` e `/api/v1/health/ready`. Endereço de produção não confirmado neste checkout.
+Com a configuração padrão, a API escuta em `http://localhost:3001`. Documentação interativa: `http://localhost:3001/api/docs`; JSON OpenAPI: `http://localhost:3001/api/docs/json`. Verificações: `/api/v1/health/live` e `/api/v1/health/ready`. As URLs de produção informadas são [frontend](https://fhdod.vercel.app/) e [API](https://backend-fhdod.onrender.com/).
 
 ## Scripts
 
@@ -113,7 +113,7 @@ Com a configuração padrão, a API escuta em `http://localhost:3001`. Documenta
 - [Segurança](docs/SECURITY.md)
 - [Migração](docs/MIGRATION.md)
 
-**Documentação online:** disponível em `http://localhost:3001/api/docs` quando a API está em execução. O endereço público depende da implantação.
+**Documentação online:** disponível em `http://localhost:3001/api/docs` localmente e em [`https://backend-fhdod.onrender.com/api/docs`](https://backend-fhdod.onrender.com/api/docs) na implantação informada.
 
 ## Endpoints e integração
 
@@ -149,4 +149,4 @@ A suíte aplica as migrations SQL reais em PostgreSQL em memória com PGlite, so
 
 ## Publicação
 
-`render.yaml` contém uma configuração de serviço web Node no Render, incluindo build, migration no pre-deploy, comando de inicialização e health check. Isso é uma configuração versionada, não evidência de serviço publicado. Para produção, configure variáveis/segredos e certificado CA Aiven de forma segura. Consulte [docs/MIGRATION.md](docs/MIGRATION.md) antes de qualquer migração de dados ou cutover. O SQL legado do Supabase não está neste checkout e esta aplicação não importa identidades nem dados.
+`render.yaml` contém uma configuração de serviço web Node no Render, incluindo build, migration no pre-deploy, comando de inicialização e health check. A URL pública informada para a API é [`https://backend-fhdod.onrender.com/`](https://backend-fhdod.onrender.com/); a URL informada para o frontend é [`https://fhdod.vercel.app/`](https://fhdod.vercel.app/). Os endereços foram fornecidos pelo responsável; disponibilidade, variáveis/segredos, certificado CA Aiven e estado do banco não foram verificados neste ambiente. Consulte [docs/MIGRATION.md](docs/MIGRATION.md) antes de qualquer migração de dados ou cutover. O SQL legado do Supabase não está neste checkout e esta aplicação não importa identidades nem dados.

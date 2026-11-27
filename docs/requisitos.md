@@ -22,7 +22,7 @@ Registrar requisitos que possam ser ligados a código ou esquema existente, deli
 
 ### 2.2 Escopo
 
-A API oferece rotas REST para autenticação, administração de usuários, setores e pesquisas, recebimento público de respostas, indicadores e gestão de ocorrências. O repositório não contém frontend, worker de e-mail, configuração de Kanban nem evidência de implantação pública.
+A API oferece rotas REST para autenticação, administração de usuários, setores e pesquisas, recebimento público de respostas, indicadores e gestão de ocorrências. O frontend não está incluído neste repositório. As URLs de implantação informadas pelo responsável são [frontend](https://fhdod.vercel.app/) e [API](https://backend-fhdod.onrender.com/); disponibilidade e configuração dos serviços não foram verificadas neste ambiente. O repositório também não contém worker de e-mail ou configuração de Kanban.
 
 ### 2.3 Público-alvo
 
@@ -224,7 +224,7 @@ Não foi estabelecida meta numérica de disponibilidade, latência, concorrênci
 
 - API e banco são dependências obrigatórias; UI não faz parte do repositório.
 - Sem envio de e-mail, exportação de arquivos ou migração de identidade/dados legados comprovados.
-- A configuração `render.yaml` é blueprint, não confirmação de implantação.
+- `render.yaml` descreve a configuração da API no Render; as URLs públicas informadas são registradas neste documento e no README, sem afirmar disponibilidade operacional.
 - Apenas migrations numeradas 001/002 são parte do esquema visível; compatibilidade com schema legado não comprovada.
 
 ## 8. Casos de uso / fluxos principais

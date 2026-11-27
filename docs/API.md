@@ -2,6 +2,8 @@
 
 Prefixo: `/api/v1`. As 25 operações existentes foram preservadas na refatoração MVC de 26/11/2026. Interface OpenAPI/Swagger: `/api/docs`; especificação JSON: `/api/docs/json`. Os schemas de entrada Zod também geram a documentação de corpos, parâmetros e filtros. Sucessos mantêm seus objetos/listas, sem envelope adicional. Erros seguem `{ "error": { "code": "...", "message": "...", "requestId": "..." } }`. Validação retorna 400, autenticação inválida 401, falta de permissão 403, recurso ausente 404, conflito de unicidade 409 e falha inesperada 500. Corpo acima de 32 KiB retorna 413; mídia inválida 415; rate limit 429 com cabeçalhos de espera. Respostas não incluem stack trace ou detalhes SQL.
 
+Base URL de produção informada: [`https://backend-fhdod.onrender.com/api/v1`](https://backend-fhdod.onrender.com/api/v1). A documentação interativa publicada está prevista em [`https://backend-fhdod.onrender.com/api/docs`](https://backend-fhdod.onrender.com/api/docs); a disponibilidade desses endereços não foi confirmada por uma checagem externa neste ambiente. O frontend informado está em [`https://fhdod.vercel.app/`](https://fhdod.vercel.app/).
+
 ## Autenticação
 
 | Método e caminho | Acesso | Comportamento |
